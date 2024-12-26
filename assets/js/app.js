@@ -86,8 +86,8 @@
     const onload = async () => {
         try {
             // Fetch and filter coins data
-            const getCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list");
-            const getFirst100CoinsData = getCoinsData.slice(0, 100);
+            const allCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list");
+            const getFirst100CoinsData = allCoinsData.slice(0, 100);
 
             // Generate HTML for coins
             const coinsHTML = generateCoins(getFirst100CoinsData);
@@ -101,6 +101,21 @@
             console.warn(e);
         }
     };
+
+    document.getElementById('searchForm').addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const coinSearch = document.getElementById('searchBar').value
+        console.log(coinSearch)
+        const allCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list")
+        const getFirstSearched100CoinsData = allCoinsData.filter(coin => coin.name.includes(coinSearch)).splice(0, 100)
+        console.log(getFirstSearched100CoinsData)
+        const coinsSearchedHTML = generateCoins(getFirstSearched100CoinsData)
+
+        renderCoins(coinsSearchedHTML);
+
+        initializePopovers();
+
+    })
 
     onload();
 })();
