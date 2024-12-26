@@ -1,7 +1,7 @@
 "use strict";
 
 (async () => {
-    const getSingleCoin = async coin => getData(`https://api.coingecko.com/api/v3/coins/${coin}`);
+    const getSingleCoin = async coinId => getData(`https://api.coingecko.com/api/v3/coins/${coinId}`);
     const getData = url => fetch(url).then(response => response.json());
 
     const generateCoins = coins => {
@@ -44,6 +44,28 @@
         `;
     };
 
+    const checkCoinInLocalStorage = coinId => {
+        const coinJSON = localStorage.getItem(`${coinId}`)
+        if (coinJSON) {
+            const coinData = JSON.parse(coinJSON)
+            if (new Date().getTime() < coinData.expiration) {
+                // check if current time is smaller than expiration (means less than 2 minutes)
+                return true
+            }
+            return false
+        }
+        return false
+    }
+
+    const saveCoinInfoToStorage = singleCoinData => {
+        const expirationTime = new Date().getTime() + 120 * 1000; // Calculate expiration timestamp (120 seconds)
+        const item = {
+            value: singleCoinData, // The coin data
+            expiration: expirationTime // Expiration timestamp
+        };
+        localStorage.setItem(`${singleCoinData.id}`, JSON.stringify(item));
+    }
+
     const initializePopovers = () => {
         document.querySelectorAll("#coins-container .btn-popover").forEach(button => {
             button.addEventListener("click", async function () {
@@ -51,28 +73,51 @@
                 let popoverInstance = bootstrap.Popover.getInstance(this);
 
                 if (popoverInstance) {
-                    // If popover exists, check if it's visible and toggle
-                    if (this.getAttribute("aria-expanded") === "true") {
-                        popoverInstance.hide(); // Hide the popover
-                    } else {
-                        popoverInstance.show(); // Show the popover
-                    }
+                    // If popover exists, dispose it
+                    popoverInstance.dispose();
                 } else {
-                    // First time: Fetch data and initialize the popover
-                    const singleCoinData = await getSingleCoin(this.id);
-                    const popoverContent = generateMoreInfo(singleCoinData);
+                    try {
+                        let popoverContent;
+                        let coinData;
 
-                    // Create the popover
-                    popoverInstance = new bootstrap.Popover(this, {
-                        content: popoverContent,
-                        title: `${singleCoinData.name} Details`,
-                        html: true,
-                        trigger: "manual", // Manual control over toggling
-                        placement: "bottom"
-                    });
+                        // Define createPopover function
+                        const createPopover = (content, name) => {
+                            popoverInstance = new bootstrap.Popover(this, {
+                                content: content,
+                                title: `${name} Details`,
+                                html: true,
+                                trigger: "manual",
+                                placement: "bottom"
+                            });
+                            popoverInstance.show();
+                        };
 
-                    // Show the popover
-                    popoverInstance.show();
+                        // Check if there is already saved coin in the local storage or coin updated more than 2 minutes ago
+                        if (checkCoinInLocalStorage(this.id)) {
+                            // if true, generate the popover from the already exist local storage (to not bother the server)
+                            const coinJSON = localStorage.getItem(this.id);
+                            coinData = JSON.parse(coinJSON).value;
+                            popoverContent = generateMoreInfo(coinData);
+                            createPopover(popoverContent, coinData.name);
+                        } else {
+                            // if false, fetch from the server and saves in local storage
+                            coinData = await getSingleCoin(this.id);
+                            popoverContent = generateMoreInfo(coinData);
+                            saveCoinInfoToStorage(coinData);
+                            createPopover(popoverContent, coinData.name);
+                        }
+                    } catch (error) {
+                        console.error("Error creating popover:", error);
+                        // Create error popover
+                        const errorPopover = new bootstrap.Popover(this, {
+                            content: "Error loading data",
+                            title: "Error",
+                            html: true,
+                            trigger: "manual",
+                            placement: "bottom"
+                        });
+                        errorPopover.show();
+                    }
                 }
             });
         });
