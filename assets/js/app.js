@@ -1,29 +1,13 @@
 "use strict";
 
 (async () => {
-
-    // const fetchRetry = async (url) => {
-    //     let isSuccess = false;
-    //     do {
-    //         try {
-    //             const data = await getData(url)
-    //             isSuccess = true
-    //         } catch (e) {
-    //             setTimeout(() => {
-    //                 fetchRetry(url)
-    //             }, 5000)               
-    //         }
-    //     } while (!isSuccess)
-    // }
-
-    const getSingleCoin = async coin => getData(`https://api.coingecko.com/api/v3/coins/${coin}`)
-
-    const getData = url => fetch(url).then(response => response.json())
+    const getSingleCoin = async coin => getData(`https://api.coingecko.com/api/v3/coins/${coin}`);
+    const getData = url => fetch(url).then(response => response.json());
 
     const generateCoins = coins => {
-        const generateCoins =
-            coins
-                .map(coin => `
+        return coins
+            .map(
+                coin => `
                     <div class="card">
                         <div class="card-body card-flex">
                             <div class="card-title-container">
@@ -34,72 +18,89 @@
                                 </div>
                             </div>
                             <p class="card-text">${coin.name}</p>
-                            <button id="${coin.id}" class="btn btn-primary btn-more-info">more info</button>
-
+                            <button id="${coin.id}" type="button" class="btn btn-primary btn-popover">
+                                More Info
+                            </button>
                         </div>
                     </div>
-                    `)
-                .join('')
-        return generateCoins
-    }
+                `
+            )
+            .join("");
+    };
 
     const generateMoreInfo = singleCoinData => {
+        const coinPriceToUSD = singleCoinData.market_data.current_price.usd;
+        const coinPriceToEUR = singleCoinData.market_data.current_price.eur;
+        const coinPriceToILS = singleCoinData.market_data.current_price.ils;
+        const coinImage = singleCoinData.image.thumb;
 
-        const coinPriceToUSD = singleCoinData.market_data.current_price.usd
-        const coinPriceToEUR = singleCoinData.market_data.current_price.eur
-        const coinPriceToILS = singleCoinData.market_data.current_price.ils
-        const coinImage = singleCoinData.image.thumb
-        console.log(coinPriceToUSD)
-        console.log(coinPriceToEUR)
-        console.log(coinPriceToILS)
-        console.log(coinImage)
-    }
+        return `
+            <div>
+                <img src="${coinImage}" alt="${singleCoinData.name}" style="width: 50px; height: 50px;">
+                <p>Price in USD: $${coinPriceToUSD}</p>
+                <p>Price in EUR: €${coinPriceToEUR}</p>
+                <p>Price in ILS: ₪${coinPriceToILS}</p>
+            </div>
+        `;
+    };
 
-    const renderCoins = coinsHTML => document.getElementById('coins-container').innerHTML = coinsHTML
+    const initializePopovers = () => {
+        document.querySelectorAll("#coins-container .btn-popover").forEach(button => {
+            button.addEventListener("click", async function () {
+                // Check if a popover instance already exists
+                let popoverInstance = bootstrap.Popover.getInstance(this);
 
-    const generateButtonId = () => {
-        document.querySelectorAll('#coins-container button').forEach(button => button.addEventListener('click', async function () {
-            // get data
-            const singleCoinData = await getSingleCoin(this.id)
+                if (popoverInstance) {
+                    // If popover exists, check if it's visible and toggle
+                    if (this.getAttribute("aria-expanded") === "true") {
+                        popoverInstance.hide(); // Hide the popover
+                    } else {
+                        popoverInstance.show(); // Show the popover
+                    }
+                } else {
+                    // First time: Fetch data and initialize the popover
+                    const singleCoinData = await getSingleCoin(this.id);
+                    const popoverContent = generateMoreInfo(singleCoinData);
 
-            // generate html
-            const moreInfo = generateMoreInfo(singleCoinData)
+                    // Create the popover
+                    popoverInstance = new bootstrap.Popover(this, {
+                        content: popoverContent,
+                        title: `${singleCoinData.name} Details`,
+                        html: true,
+                        trigger: "manual", // Manual control over toggling
+                        placement: "bottom"
+                    });
 
-            // render html
+                    // Show the popover
+                    popoverInstance.show();
+                }
+            });
+        });
+    };
 
-            console.log(moreInfo)
-            console.log(this.id)
-        }))
-    }
+    const renderCoins = coinsHTML => {
+        document.getElementById("coins-container").innerHTML = coinsHTML;
+    };
 
     // MAIN FUNCTION
     const onload = async () => {
         try {
-            // get data (on coins)
-            const getCoinsData = await getData('https://api.coingecko.com/api/v3/coins/list')
-            const getFirst100CoinsData = getCoinsData.splice(0, 100)
-            console.log(getFirst100CoinsData)
+            // Fetch and filter coins data
+            const getCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list");
+            const getFirst100CoinsData = getCoinsData.slice(0, 100);
 
-            // generate data 
-            const coinsHTML = generateCoins(getFirst100CoinsData)
+            // Generate HTML for coins
+            const coinsHTML = generateCoins(getFirst100CoinsData);
 
-            // render data
-            renderCoins(coinsHTML)
+            // Render coins
+            renderCoins(coinsHTML);
 
-            // generate button id
-            generateButtonId()
-
+            // Initialize popovers for the buttons
+            initializePopovers();
         } catch (e) {
-            console.warn(e)
+            console.warn(e);
         }
+    };
 
-    }
-
-    onload()
-
-    // const btcData = await getSingleCoin('bitcoin')
-    // const graphData = await getGraphData(['BTC','ETH'])
-    // console.log(btcData)
-    // console.log(graphData)
-
-})()
+    onload();
+})();

@@ -147,6 +147,10 @@ body {
     padding-right: 15%;
 }
 
+.card-body button {
+    width: fit-content;
+}
+
 .card {
     width: 33%;
 }
