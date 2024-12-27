@@ -125,6 +125,12 @@
 
     const renderCoins = coinsHTML => {
         document.getElementById("coins-container").innerHTML = coinsHTML;
+        // Initialize popovers for the buttons
+        initializePopovers();
+        // Initialize checkbox for the coins
+        initializeCheckbox();
+        // load the already selected buttons
+        loadSelectedButtons()
     };
 
     const initializeCheckbox = () => {
@@ -154,23 +160,33 @@
                 } catch (e) {
                     console.warn(e)
                 }
-
-
                 // console.log(this.id)
                 // console.log(this.checked)
                 // const coinId = this.id.replace('Switch', "")
                 // console.log(coinId)
-
-
-
             })
         })
     }
 
+    const saveDisplayedCoinsToLocalStorage = displayedCoins => localStorage.setItem('displayedCoins', JSON.stringify(displayedCoins))
 
-    // const selectedButtons = () => {
 
-    // }
+    const loadSelectedButtons = () => {
+        const selectedCoinsJSON = localStorage.getItem('selectedCoins')
+        let SelectedCoinsArray;
+        if (!selectedCoinsJSON) {
+            SelectedCoinsArray = []
+        } else {
+            SelectedCoinsArray = JSON.parse(selectedCoinsJSON)
+        }
+        SelectedCoinsArray.forEach(coin => {
+            const checkbox = document.getElementById(`${coin.id + 'Switch'}`); // Get the checkbox element
+            if (checkbox) {
+                checkbox.checked = true; // Set the checkbox to checked
+            }
+            console.log(`${coin.id + 'Switch'}`); // Debugging log
+        });
+    }
 
     // MAIN FUNCTION
     const onload = async () => {
@@ -178,6 +194,8 @@
             // Fetch and filter coins data
             const allCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list");
             const getFirst100CoinsData = allCoinsData.slice(0, 100);
+            // save the displayed coin to local storage
+            saveDisplayedCoinsToLocalStorage(getFirst100CoinsData)
 
             // Generate HTML for coins
             const coinsHTML = generateCoins(getFirst100CoinsData);
@@ -185,10 +203,6 @@
             // Render coins
             renderCoins(coinsHTML);
 
-            // Initialize popovers for the buttons
-            initializePopovers();
-            // Initialize checkbox for the coins
-            initializeCheckbox();
         } catch (e) {
             console.warn(e);
         }
@@ -197,16 +211,13 @@
     document.getElementById('searchForm').addEventListener('submit', async (event) => {
         event.preventDefault()
         const coinSearch = document.getElementById('searchBar').value
-        console.log(coinSearch)
         const allCoinsData = await getData("https://api.coingecko.com/api/v3/coins/list")
         const getFirstSearched100CoinsData = allCoinsData.filter(coin => coin.name.includes(coinSearch)).splice(0, 100)
-        console.log(getFirstSearched100CoinsData)
+        // save the displayed coin to local storage
+        saveDisplayedCoinsToLocalStorage(getFirstSearched100CoinsData)
         const coinsSearchedHTML = generateCoins(getFirstSearched100CoinsData)
 
         renderCoins(coinsSearchedHTML);
-
-        initializePopovers();
-
     })
 
     onload();
