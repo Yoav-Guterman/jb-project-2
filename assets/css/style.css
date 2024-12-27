@@ -155,6 +155,10 @@ body {
     width: 33%;
 }
 
+input[type="search"]::-webkit-search-cancel-button {
+    cursor: pointer;
+}
+
 /* Media Queries */
 @media screen and (min-width: 1025px) {
 

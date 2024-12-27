@@ -13,7 +13,7 @@
                             <div class="card-title-container">
                                 <h4 class="card-title">${coin.symbol}</h4>
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
+                                    <input class="form-check-input" type="checkbox" id="${coin.id}Switch">
                                     <label class="form-check-label" for="flexSwitchCheckDefault"></label>
                                 </div>
                             </div>
@@ -127,6 +127,51 @@
         document.getElementById("coins-container").innerHTML = coinsHTML;
     };
 
+    const initializeCheckbox = () => {
+        // create all checkbox switches for all the coins
+        document.querySelectorAll("#coins-container .form-check-input").forEach(button => {
+            button.addEventListener("change", async function () {
+                try {
+                    const selectedCoinsJSON = localStorage.getItem('selectedCoins')
+                    const coinId = this.id.replace('Switch', "")
+                    // the id of the coin
+                    let SelectedCoinsArray;
+                    if (!selectedCoinsJSON) {
+                        SelectedCoinsArray = []
+                    } else {
+                        SelectedCoinsArray = JSON.parse(selectedCoinsJSON)
+                    }
+                    if (this.checked === true) {
+                        // if checkbox === true get the coin information and adds to the selected coins array on local storage
+                        const singleCoinData = await getSingleCoin(coinId)
+                        SelectedCoinsArray.push(singleCoinData)
+                        localStorage.setItem('selectedCoins', JSON.stringify(SelectedCoinsArray))
+                    } else {
+                        // else (switch to false) delete the specific coin from the selectedCoins array in the local storage
+                        const newCoinArray = SelectedCoinsArray.filter(coin => coin.id !== coinId)
+                        localStorage.setItem('selectedCoins', JSON.stringify(newCoinArray))
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+
+
+                // console.log(this.id)
+                // console.log(this.checked)
+                // const coinId = this.id.replace('Switch', "")
+                // console.log(coinId)
+
+
+
+            })
+        })
+    }
+
+
+    // const selectedButtons = () => {
+
+    // }
+
     // MAIN FUNCTION
     const onload = async () => {
         try {
@@ -142,6 +187,8 @@
 
             // Initialize popovers for the buttons
             initializePopovers();
+            // Initialize checkbox for the coins
+            initializeCheckbox();
         } catch (e) {
             console.warn(e);
         }
